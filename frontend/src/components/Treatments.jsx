@@ -188,6 +188,9 @@ export const allTreatmentsList = [
 export default function Treatments({ onSelectTreatment }) {
   const [activeFilter, setActiveFilter] = useState('all');
 
+  const filteredTreatments = activeFilter === 'all'
+    ? allTreatmentsList
+    : allTreatmentsList.filter(t => t.category === activeFilter);
 
   return (
     <section id="treatments" style={{
