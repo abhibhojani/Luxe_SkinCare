@@ -4,7 +4,6 @@ import Hero from './components/Hero';
 import Treatments from './components/Treatments';
 import DoctorSection from './components/DoctorSection';
 import ClickableLocation from './components/ClickableLocation';
-import Reviews from './components/Reviews';
 import Footer from './components/Footer';
 import BookingModal from './components/BookingModal';
 import MobileBottomBar from './components/MobileBottomBar';
@@ -90,8 +89,6 @@ export default function App() {
           {/* Clickable Location & Contact Info */}
           <ClickableLocation />
 
-          {/* Patient Reviews & Social Proof */}
-          <Reviews />
         </main>
 
         {/* Footer */}
