@@ -20,7 +20,7 @@ public class EmailService {
     @Value("${clinic.owner.email:owner@luxclinic.com}")
     private String ownerEmail;
 
-    @Value("${spring.mail.username:abhibhojani121@gmail.com}")
+    @Value("${spring.mail.username:bhojaniabhi121@gmail.com}")
     private String fromEmail;
 
     @Value("${RESEND_API_KEY:}")
@@ -168,7 +168,7 @@ public class EmailService {
                                          .replace("\r", "");
             String escapedSubject = subject.replace("\"", "\\\"");
 
-            String senderEmail = (fromEmail != null && !fromEmail.trim().isEmpty()) ? fromEmail : "abhibhojani121@gmail.com";
+            String senderEmail = (fromEmail != null && !fromEmail.trim().isEmpty()) ? fromEmail : "bhojaniabhi121@gmail.com";
 
             String jsonPayload = String.format(
                 "{\"sender\":{\"name\":\"Luxe Skin Clinic\",\"email\":\"%s\"},\"to\":[{\"email\":\"%s\"}],\"subject\":\"%s\",\"textContent\":\"%s\"}",
