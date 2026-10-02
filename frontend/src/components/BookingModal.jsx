@@ -205,7 +205,7 @@ export default function BookingModal({ isOpen, onClose, initialTreatment = '' })
     };
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://luxe-skincare.onrender.com';
       const response = await fetch(`${apiUrl}/api/appointments`, {
         method: 'POST',
         headers: {
