@@ -26,6 +26,9 @@ public class EmailService {
     @Value("${RESEND_API_KEY:}")
     private String resendApiKey;
 
+    @Value("${BREVO_API_KEY:}")
+    private String brevoApiKey;
+
     /**
      * Send notification email to the Clinic Owner / Dr. Kenin Jadvani
      */
@@ -49,7 +52,12 @@ public class EmailService {
             customerName, customerEmail, customerPhone != null ? customerPhone : "Not provided", service, time
         );
 
-        // Try Resend HTTP API first (works on Render free tier over Port 443)
+        // Try Brevo HTTP API first (sends to ANY email without domain restrictions)
+        if (sendViaBrevo(ownerEmail, subject, text)) {
+            return;
+        }
+
+        // Try Resend HTTP API
         if (sendViaResend(ownerEmail, subject, text)) {
             return;
         }
@@ -108,7 +116,12 @@ public class EmailService {
             customerName, service, time
         );
 
-        // Try Resend HTTP API first (works on Render free tier over Port 443)
+        // Try Brevo HTTP API first (sends to ANY email without domain restrictions)
+        if (sendViaBrevo(customerEmail, subject, text)) {
+            return;
+        }
+
+        // Try Resend HTTP API
         if (sendViaResend(customerEmail, subject, text)) {
             return;
         }
@@ -133,6 +146,56 @@ public class EmailService {
         } catch (Exception e) {
             System.err.println("⚠️ Error sending confirmation email to customer: " + e.getMessage());
             e.printStackTrace();
+        }
+    }
+
+    /**
+     * Helper method to send email via Brevo HTTP REST API (Port 443)
+     */
+    private boolean sendViaBrevo(String to, String subject, String bodyText) {
+        if (brevoApiKey == null || brevoApiKey.trim().isEmpty()) {
+            return false;
+        }
+
+        System.out.println("🚀 Dispatching email via Brevo HTTP API to: " + to);
+
+        try {
+            HttpClient client = HttpClient.newHttpClient();
+
+            String escapedBody = bodyText.replace("\\", "\\\\")
+                                         .replace("\"", "\\\"")
+                                         .replace("\n", "\\n")
+                                         .replace("\r", "");
+            String escapedSubject = subject.replace("\"", "\\\"");
+
+            String senderEmail = (fromEmail != null && !fromEmail.trim().isEmpty()) ? fromEmail : "abhibhojani121@gmail.com";
+
+            String jsonPayload = String.format(
+                "{\"sender\":{\"name\":\"Luxe Skin Clinic\",\"email\":\"%s\"},\"to\":[{\"email\":\"%s\"}],\"subject\":\"%s\",\"textContent\":\"%s\"}",
+                senderEmail, to, escapedSubject, escapedBody
+            );
+
+            HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("https://api.brevo.com/v3/smtp/email"))
+                .header("api-key", brevoApiKey.trim())
+                .header("Content-Type", "application/json")
+                .header("accept", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                .build();
+
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                System.out.println("✅ Email successfully sent via Brevo HTTP API to: " + to + " (Response: " + response.body() + ")");
+                return true;
+            } else {
+                System.err.println("⚠️ Brevo HTTP API returned status " + response.statusCode() + ": " + response.body());
+                return true;
+            }
+        } catch (Exception e) {
+            System.err.println("⚠️ Error sending email via Brevo HTTP API: " + e.getMessage());
+            e.printStackTrace();
+            return false;
         }
     }
 
