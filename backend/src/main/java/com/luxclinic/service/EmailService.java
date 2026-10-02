@@ -6,6 +6,11 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+
 @Service
 public class EmailService {
 
@@ -18,22 +23,14 @@ public class EmailService {
     @Value("${spring.mail.username:abhibhojani121@gmail.com}")
     private String fromEmail;
 
+    @Value("${RESEND_API_KEY:}")
+    private String resendApiKey;
+
     /**
      * Send notification email to the Clinic Owner / Dr. Kenin Jadvani
      */
     public void sendAppointmentNotificationToOwner(String customerName, String customerEmail, String customerPhone, String service, String time) {
-        if (emailSender == null) {
-            System.out.println("JavaMailSender is not initialized. Skipping email to owner.");
-            return;
-        }
-
-        SimpleMailMessage message = new SimpleMailMessage();
-        if (fromEmail != null && !fromEmail.trim().isEmpty()) {
-            message.setFrom(fromEmail);
-        }
-        message.setTo(ownerEmail);
-        message.setSubject("🚨 New Appointment Booking Alert - " + customerName + " (" + service + ")");
-        
+        String subject = "🚨 New Appointment Booking Alert - " + customerName + " (" + service + ")";
         String text = String.format(
             "Hello Dr. Kenin Jadvani / Luxe Skin Clinic Team,%n%n" +
             "A new appointment booking has been submitted through the clinic landing page:%n%n" +
@@ -51,9 +48,26 @@ public class EmailService {
             "Luxe Skin Clinic Booking System",
             customerName, customerEmail, customerPhone != null ? customerPhone : "Not provided", service, time
         );
-                
+
+        // Try Resend HTTP API first (works on Render free tier over Port 443)
+        if (sendViaResend(ownerEmail, subject, text)) {
+            return;
+        }
+
+        // Fallback to JavaMailSender (SMTP)
+        if (emailSender == null) {
+            System.out.println("JavaMailSender is not initialized. Skipping email to owner.");
+            return;
+        }
+
+        SimpleMailMessage message = new SimpleMailMessage();
+        if (fromEmail != null && !fromEmail.trim().isEmpty()) {
+            message.setFrom(fromEmail);
+        }
+        message.setTo(ownerEmail);
+        message.setSubject(subject);
         message.setText(text);
-        
+
         try {
             emailSender.send(message);
             System.out.println("✅ Appointment notification email successfully sent to owner: " + ownerEmail);
@@ -67,22 +81,11 @@ public class EmailService {
      * Send booking confirmation email to the Patient / User
      */
     public void sendConfirmationToCustomer(String customerName, String customerEmail, String service, String time) {
-        if (emailSender == null) {
-            System.out.println("JavaMailSender is not initialized. Skipping email to customer.");
-            return;
-        }
-
         if (customerEmail == null || customerEmail.trim().isEmpty()) {
             return;
         }
 
-        SimpleMailMessage message = new SimpleMailMessage();
-        if (fromEmail != null && !fromEmail.trim().isEmpty()) {
-            message.setFrom(fromEmail);
-        }
-        message.setTo(customerEmail);
-        message.setSubject("✨ Appointment Confirmed - Luxe Skin Clinic, Surat");
-        
+        String subject = "✨ Appointment Confirmed - Luxe Skin Clinic, Surat";
         String text = String.format(
             "Dear %s,%n%n" +
             "Thank you for booking with Luxe Skin Clinic! Your appointment has been received and scheduled.%n%n" +
@@ -104,15 +107,76 @@ public class EmailService {
             "Luxe Skin Clinic, Surat",
             customerName, service, time
         );
-                
+
+        // Try Resend HTTP API first (works on Render free tier over Port 443)
+        if (sendViaResend(customerEmail, subject, text)) {
+            return;
+        }
+
+        // Fallback to JavaMailSender (SMTP)
+        if (emailSender == null) {
+            System.out.println("JavaMailSender is not initialized. Skipping email to customer.");
+            return;
+        }
+
+        SimpleMailMessage message = new SimpleMailMessage();
+        if (fromEmail != null && !fromEmail.trim().isEmpty()) {
+            message.setFrom(fromEmail);
+        }
+        message.setTo(customerEmail);
+        message.setSubject(subject);
         message.setText(text);
-        
+
         try {
             emailSender.send(message);
             System.out.println("✅ Confirmation email successfully sent to customer: " + customerEmail);
         } catch (Exception e) {
             System.err.println("⚠️ Error sending confirmation email to customer: " + e.getMessage());
             e.printStackTrace();
+        }
+    }
+
+    /**
+     * Helper method to send email via Resend HTTP REST API (Port 443)
+     */
+    private boolean sendViaResend(String to, String subject, String bodyText) {
+        if (resendApiKey == null || resendApiKey.trim().isEmpty()) {
+            return false;
+        }
+
+        try {
+            HttpClient client = HttpClient.newHttpClient();
+
+            String escapedBody = bodyText.replace("\\", "\\\\")
+                                         .replace("\"", "\\\"")
+                                         .replace("\n", "\\n")
+                                         .replace("\r", "");
+            String escapedSubject = subject.replace("\"", "\\\"");
+
+            String jsonPayload = String.format(
+                "{\"from\":\"Luxe Skin Clinic <onboarding@resend.dev>\",\"to\":[\"%s\"],\"subject\":\"%s\",\"text\":\"%s\"}",
+                to, escapedSubject, escapedBody
+            );
+
+            HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("https://api.resend.com/emails"))
+                .header("Authorization", "Bearer " + resendApiKey.trim())
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                .build();
+
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                System.out.println("✅ Email successfully sent via Resend HTTP API to: " + to);
+                return true;
+            } else {
+                System.err.println("⚠️ Resend HTTP API returned error status (" + response.statusCode() + "): " + response.body());
+                return false;
+            }
+        } catch (Exception e) {
+            System.err.println("⚠️ Error sending email via Resend HTTP API: " + e.getMessage());
+            return false;
         }
     }
 }
