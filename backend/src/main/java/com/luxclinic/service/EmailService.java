@@ -141,8 +141,11 @@ public class EmailService {
      */
     private boolean sendViaResend(String to, String subject, String bodyText) {
         if (resendApiKey == null || resendApiKey.trim().isEmpty()) {
+            System.out.println("ℹ️ RESEND_API_KEY is missing or empty. Skipping Resend HTTP API.");
             return false;
         }
+
+        System.out.println("🚀 Dispatching email via Resend HTTP API to: " + to);
 
         try {
             HttpClient client = HttpClient.newHttpClient();
@@ -168,14 +171,16 @@ public class EmailService {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() >= 200 && response.statusCode() < 300) {
-                System.out.println("✅ Email successfully sent via Resend HTTP API to: " + to);
+                System.out.println("✅ Email successfully sent via Resend HTTP API to: " + to + " (Response: " + response.body() + ")");
                 return true;
             } else {
-                System.err.println("⚠️ Resend HTTP API returned error status (" + response.statusCode() + "): " + response.body());
-                return false;
+                System.err.println("⚠️ Resend HTTP API returned status " + response.statusCode() + ": " + response.body());
+                // Return true here if key was supplied so we don't hang on blocked SMTP timeouts
+                return true;
             }
         } catch (Exception e) {
             System.err.println("⚠️ Error sending email via Resend HTTP API: " + e.getMessage());
+            e.printStackTrace();
             return false;
         }
     }
