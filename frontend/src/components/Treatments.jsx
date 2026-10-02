@@ -69,7 +69,7 @@ export const allTreatmentsList = [
     category: 'skin',
     title: 'Diode Laser Hair Reduction',
     tagline: 'US-FDA Approved Gold Standard 4-Wavelength',
-    image: 'https://images.unsplash.com/photo-1512290900672-1f4a9b5f5434?auto=format&fit=crop&w=800&q=80',
+    image: 'https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?auto=format&fit=crop&w=800&q=80',
     description: "The world's most advanced Gold Standard Four Wavelength US-FDA approved laser system. Offers painless, permanent reduction of unwanted facial and body hair with continuous contact cooling.",
     brochureNote: "World's most advanced 4-wavelength US-FDA approved machine for permanent hair reduction.",
     highlights: [
