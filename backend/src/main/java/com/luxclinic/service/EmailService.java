@@ -15,6 +15,9 @@ public class EmailService {
     @Value("${clinic.owner.email:owner@luxclinic.com}")
     private String ownerEmail;
 
+    @Value("${spring.mail.username:abhibhojani121@gmail.com}")
+    private String fromEmail;
+
     /**
      * Send notification email to the Clinic Owner / Dr. Kenin Jadvani
      */
@@ -25,6 +28,9 @@ public class EmailService {
         }
 
         SimpleMailMessage message = new SimpleMailMessage();
+        if (fromEmail != null && !fromEmail.trim().isEmpty()) {
+            message.setFrom(fromEmail);
+        }
         message.setTo(ownerEmail);
         message.setSubject("🚨 New Appointment Booking Alert - " + customerName + " (" + service + ")");
         
@@ -53,6 +59,7 @@ public class EmailService {
             System.out.println("✅ Appointment notification email successfully sent to owner: " + ownerEmail);
         } catch (Exception e) {
             System.err.println("⚠️ Error sending notification email to owner: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -70,6 +77,9 @@ public class EmailService {
         }
 
         SimpleMailMessage message = new SimpleMailMessage();
+        if (fromEmail != null && !fromEmail.trim().isEmpty()) {
+            message.setFrom(fromEmail);
+        }
         message.setTo(customerEmail);
         message.setSubject("✨ Appointment Confirmed - Luxe Skin Clinic, Surat");
         
@@ -102,6 +112,7 @@ public class EmailService {
             System.out.println("✅ Confirmation email successfully sent to customer: " + customerEmail);
         } catch (Exception e) {
             System.err.println("⚠️ Error sending confirmation email to customer: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 }
